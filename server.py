@@ -4,7 +4,7 @@ import socket
 import threading
 
 HOST = "127.0.0.1" # localhost
-PORT = 3000
+PORT = 3001
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
@@ -15,7 +15,6 @@ nicknames = []
 keys = []
 
 public_key = utils.get_SDES_key(10)
-keys.append(public_key)
 
 def broadcast(message, decrypt = False):
 
@@ -23,7 +22,6 @@ def broadcast(message, decrypt = False):
 
         if (decrypt):
             client.send("DECRYPT".encode('ascii'))
-            client.recv(1024).decode('ascii')
 
         client.send(message)
 
@@ -46,6 +44,9 @@ def receive():
     while True:
         client, address = server.accept()
         print(f"Connected with {str(address)}")
+        
+        client.send(public_key.encode('ascii'))
+        client.recv(1024).decode('ascii')
 
         client.send("NICKNAME".encode('ascii'))
         nickname = client.recv(1024).decode('ascii')

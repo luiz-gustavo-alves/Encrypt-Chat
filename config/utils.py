@@ -44,7 +44,9 @@ def join_bin_values(bin_values):
     bin_values = ''.join(bin_values.split())
     return [bin_values[i:i+8] for i in range(0, len(bin_values), 8)] 
 
-def SDES(message, type):
+def SDES(message, key, type):
+
+    key = key.encode('utf-8')
 
     if (type == "C"):
 
@@ -53,20 +55,20 @@ def SDES(message, type):
 
         for bin_value in bin_values:
             bin_value = bin_value.encode('utf-8')
-            crypt_values.append((clib_SDES.simple_des(bin_value, b"1000000000", 1)).decode('utf-8'))
+            crypt_values.append((clib_SDES.simple_des(bin_value, key, 1)).decode('utf-8'))
 
         crypt_message = ''.join(crypt_values)
         return crypt_message
 
     elif (type == "D"):
 
-        nickname, crypt_message = chunk_bin_values(message.decode('ascii'))
+        nickname, crypt_message = chunk_bin_values(message)
         crypt_message = join_bin_values(crypt_message)
         decrypt_values = []
 
         for bin_value in crypt_message:
             bin_value = bin_value.encode('utf-8')
-            decrypt_values.append((clib_SDES.simple_des(bin_value, b"1000000000", 2)).decode('utf-8'))
+            decrypt_values.append((clib_SDES.simple_des(bin_value, key, 2)).decode('utf-8'))
 
         decrypt_message = convert_bin_str(decrypt_values)
         return nickname, decrypt_message
