@@ -19,11 +19,12 @@ keys.append(public_key)
 
 def broadcast(message, decrypt = False):
 
-    if (decrypt):
-        nickname, message = utils.SDES(message, "D")
-        message = f"{nickname}: {message}".encode('ascii')
-
     for client in clients:
+
+        if (decrypt):
+            client.send("DECRYPT".encode('ascii'))
+            client.recv(1024).decode('ascii')
+
         client.send(message)
 
 def handle(client):

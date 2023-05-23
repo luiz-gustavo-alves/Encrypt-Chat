@@ -12,11 +12,21 @@ def receive():
     while True:
         try:
             message = client.recv(1024).decode('ascii')
-            if (message == "NICKNAME"):
+
+            if message == "NICKNAME":
                 client.send(nickname.encode('ascii'))
+            elif message == "DECRYPT":
+                
+                client.send("OK".encode('ascii'))
+                crypt_message = client.recv(1024)
+                user_nickname, decrypt_message = utils.SDES(crypt_message, "D") 
+                decrypt_message = f"{user_nickname}: {decrypt_message}"
+                print(decrypt_message)
             else:
                 print(message)
-        except:
+
+        except Exception as e:
+            print(e)
             print("An error occurred!")
             client.close()
             break
