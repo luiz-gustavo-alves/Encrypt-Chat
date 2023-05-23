@@ -8,6 +8,22 @@ dll_SDES = ("/home/luizgustavo/Projetos/Seguranca-Computacional/Chat/config/C/SD
 clib_SDES = CDLL(dll_SDES)
 clib_SDES.simple_des.restype = c_char_p
 
+def get_indexes_pair(message, nicknames):
+    
+    index = message.index(":")
+    pair = message[:index].split(" ")
+
+    nicknames_pair = []
+    nicknames_pair.append(pair[0])
+    nicknames_pair.append(pair[2])
+
+    indexes_pair = []
+    for i in range(0, len(nicknames)):
+        if nicknames[i] in nicknames_pair:
+            indexes_pair.append(i)
+    
+    return indexes_pair
+
 def convert_str_bin(string):
     return ' '.join(format(i, '08b') for i in bytearray(string, encoding ='utf-8')).split()
 
