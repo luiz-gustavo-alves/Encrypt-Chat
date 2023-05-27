@@ -1,15 +1,13 @@
 from config import utils
 
 import traceback
-
 import socket
 import threading
 
-HOST = "127.0.0.1" # localhost
 PORT = 3000
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((HOST, PORT))
+client.connect(("0.0.0.0", PORT))
 
 public_key = client.recv(1024).decode('ascii')
 client.send("KEY RECEIVED".encode('ascii'))
@@ -43,10 +41,11 @@ def receive():
 def write():
     while True:
         message = f'{input("")}'
-        ## crypt_message = f'{nickname}: {utils.SDES(message, public_key, "C")}'
-        ## client.send(f"BROADCAST{crypt_message}".encode('ascii'))
-        crypt_message = f'{nickname} to vasco: {utils.SDES(message, public_key, "C")}'
-        client.send(f"DM{crypt_message}".encode('ascii'))
+        crypt_message = f'{nickname}: {utils.SDES(message, public_key, "C")}'
+        client.send(f"BROADCAST{crypt_message}".encode('ascii'))
+        ## crypt_message = f'{nickname} to vasco: {utils.SDES(message, public_key, "C")}'
+        ## client.send(f"DM{crypt_message}".encode('ascii'))
+
 
 receive_thread = threading.Thread(target=receive)
 receive_thread.start()

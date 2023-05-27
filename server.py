@@ -1,15 +1,13 @@
 from config import utils
 
 import traceback
-
 import socket
 import threading
 
-HOST = "127.0.0.1" # localhost
 PORT = 3000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((HOST, PORT))
+server.bind(("0.0.0.0", PORT))
 server.listen()
 
 clients = []
@@ -91,4 +89,6 @@ def receive():
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
+
+print(f'Server is starting at IP: {IP}')
 receive()
