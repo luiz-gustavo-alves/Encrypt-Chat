@@ -90,5 +90,5 @@ def receive():
         thread.start()
 
 
-print(f'Server is starting at IP: {IP}')
+print("Server is starting....")
 receive()
