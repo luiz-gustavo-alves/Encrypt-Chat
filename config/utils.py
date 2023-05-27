@@ -4,7 +4,9 @@ import random
 import string
 import os
 
-dll_SDES = ("/home/luizgustavo/Projetos/Seguranca-Computacional/Chat/config/C/SDES.so")
+SDES_abspath = os.path.abspath("config/C/SDES.so")
+
+dll_SDES = (SDES_abspath)
 clib_SDES = CDLL(dll_SDES)
 clib_SDES.simple_des.restype = c_char_p
 
