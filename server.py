@@ -4,6 +4,9 @@ import traceback
 import socket
 import threading
 
+import subprocess
+
+SERVER_IP = subprocess.check_output(['hostname', '-s', '-I']).decode('utf-8')[:-1]
 PORT = 3000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -90,5 +93,5 @@ def receive():
         thread.start()
 
 
-print("Server is starting....")
+print(f"Server is starting at IP: {SERVER_IP} at PORT: {PORT}")
 receive()

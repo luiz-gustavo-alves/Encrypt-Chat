@@ -4,10 +4,11 @@ import traceback
 import socket
 import threading
 
+IP = input("Server IP: ")
 PORT = 3000
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(("0.0.0.0", PORT))
+client.connect((IP, PORT))
 
 public_key = client.recv(1024).decode('ascii')
 client.send("KEY RECEIVED".encode('ascii'))
