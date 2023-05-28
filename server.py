@@ -7,10 +7,12 @@ import threading
 import subprocess
 
 SERVER_IP = subprocess.check_output(['hostname', '-s', '-I']).decode('utf-8')[:-1]
+
+HOST = "127.0.0.1"
 PORT = 3000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(("0.0.0.0", PORT))
+server.bind((HOST, PORT))
 server.listen()
 
 clients = []
@@ -86,8 +88,6 @@ def receive():
         clients.append(client)
 
         print(f"Nickname of the client is {nickname}!")
-        broadcast(f"{nickname} joined the chat!".encode('ascii'))
-        client.send("Connected to the server!".encode('ascii'))
 
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()

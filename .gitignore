@@ -2,3 +2,5 @@ C-test
 __pycache__
 readme
 test.py
+GUI.ui
+guitest.py
