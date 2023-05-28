@@ -30,7 +30,7 @@ def send_DM(message):
     for client in clients:
         
         if (client_counter in indexes_pair):
-            client.send(f"DECRYPT {message}".encode('ascii'))
+            client.send(f"DECRYPT {message}".encode('utf-8'))
             num_request += 1
             
             if (num_request < 2):
@@ -44,14 +44,14 @@ def broadcast(message, decrypt = False):
 
     for client in clients:
         if (decrypt):
-            client.send(f"DECRYPT {message}".encode('ascii'))
+            client.send(f"DECRYPT {message}".encode('utf-8'))
         else:
             client.send(message)
 
 def handle(client):
     while True:
         try:
-            message = client.recv(1024).decode('ascii')
+            message = client.recv(1024).decode('utf-8')
 
             if "BROADCAST" in message:
                 broadcast_message = message.replace("BROADCAST", "")
@@ -70,7 +70,7 @@ def handle(client):
             clients.remove(client)
             client.close()
             nickname = nicknames[index]
-            broadcast(f'{nickname} left the chat!'.encode('ascii'))
+            broadcast(f'{nickname} left the chat!'.encode('utf-8'))
             nicknames.remove(nickname)
             break
 
@@ -84,13 +84,13 @@ def receive():
             client.recv(1024)
 
             client.send("NICKNAME".encode('utf-8'))
-            nickname = client.recv(1024)
+            nickname = client.recv(1024).decode('utf-8')
 
             nicknames.append(nickname)
             clients.append(client)
 
             print(f"Nickname of the client is {nickname}!")
-            broadcast(f"{nickname} connected to the server!\n".encode("utf-8"))
+            broadcast(f"[*] {nickname} connected to the server!\n".encode("utf-8"))
             client.send("Connected to the server".encode("utf-8"))
 
             thread = threading.Thread(target=handle, args=(client,))

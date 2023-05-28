@@ -26,17 +26,14 @@ class Client:
     def receive(self):
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.HOST, self.PORT))
+        self.sock.connect((HOST, PORT))
 
         self.public_key = self.sock.recv(1024).decode('utf-8')
         self.sock.send("KEY RECEIVED".encode('utf-8'))
 
-        print(self.public_key)
-
         while self.running:
             try:
                 message = self.sock.recv(1024).decode('utf-8')
-                print(message)
                 
                 if message == "NICKNAME":
                     self.sock.send(self.format_nickname(self.nickname).encode('utf-8'))
@@ -101,11 +98,8 @@ class Client:
         self.window.protocol("WM_DELETE_WINDOW", self.stop)
         self.window.mainloop()
 
-    def __init__(self, HOST, PORT):
+    def __init__(self):
 
-        self.HOST = HOST
-        self.PORT = PORT
-    
         nickname_window = tkinter.Tk()
         nickname_window.withdraw()
 
@@ -124,8 +118,8 @@ class Client:
    ## while True:
      ##   message = f'{input("")}'
      ##   crypt_message = f'{nickname}: {utils.SDES(message, public_key, "C")}'
-     ##   client.send(f"BROADCAST{crypt_message}".encode('ascii'))
+     ##   client.send(f"BROADCAST{crypt_message}".encode('utf-8'))
         ## crypt_message = f'{nickname} to vasco: {utils.SDES(message, public_key, "C")}'
-        ## client.send(f"DM{crypt_message}".encode('ascii'))
+        ## client.send(f"DM{crypt_message}".encode('utf-8'))
 
-client = Client(HOST, PORT)
+client = Client()
