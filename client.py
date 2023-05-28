@@ -25,18 +25,21 @@ class Client:
     
     def receive(self):
 
-        self.public_key = self.sock.recv(1024).decode('ascii')
-        self.sock.send("KEY RECEIVED".encode('ascii'))
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((self.HOST, self.PORT))
+
+        self.public_key = self.sock.recv(1024).decode('utf-8')
+        self.sock.send("KEY RECEIVED".encode('utf-8'))
 
         print(self.public_key)
 
         while self.running:
             try:
-                message = self.sock.recv(1024).decode('ascii')
+                message = self.sock.recv(1024).decode('utf-8')
                 print(message)
                 
                 if message == "NICKNAME":
-                    self.sock.send(self.nickname.encode('ascii'))
+                    self.sock.send(self.format_nickname(self.nickname).encode('utf-8'))
                 elif "DECRYPT" in message:
                     decrypt_message = self.decrypt_message(message, self.public_key)
                     self.text_area.config(state='normal')
@@ -49,9 +52,9 @@ class Client:
                         self.text_area.insert('end', message)
                         self.text_area.yview('end')
                         self.text_area.config(state='disabled')
-            except:
+            except Exception as ex:
+                print('Exception in Server:', ex)
                 traceback.print_exc()
-                print("An error occurred!")
                 self.sock.close()
                 break
 
@@ -60,7 +63,7 @@ class Client:
 
         ## Crypt Algorithm (SDES)
         crypt_message = f'{self.nickname}: {utils.SDES(message, self.public_key, "C")}'
-        self.sock.send(f"BROADCAST{crypt_message}".encode('ascii'))
+        self.sock.send(f"BROADCAST{crypt_message}".encode('utf-8'))
         self.input_area.delete('1.0', 'end')
 
     def stop(self):
@@ -100,8 +103,8 @@ class Client:
 
     def __init__(self, HOST, PORT):
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((HOST, PORT))
+        self.HOST = HOST
+        self.PORT = PORT
     
         nickname_window = tkinter.Tk()
         nickname_window.withdraw()

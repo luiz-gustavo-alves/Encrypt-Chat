@@ -61,8 +61,9 @@ def handle(client):
                 direct_message = message.replace("DM", "")
                 send_DM(direct_message)
 
-        except:
+        except Exception as ex:
             # User disconect or connection refused
+            print('Exception in Server:', ex)
             traceback.print_exc()
 
             index = clients.index(client)
@@ -75,22 +76,27 @@ def handle(client):
 
 def receive():
     while True:
-        client, address = server.accept()
-        print(f"Connected with {str(address)}")
-        
-        client.send(public_key.encode('ascii'))
-        client.recv(1024).decode('ascii')
+        try:
+            client, address = server.accept()
+            print(f"Connected with {str(address)}")
+            
+            client.send(public_key.encode('utf-8'))
+            client.recv(1024)
 
-        client.send("NICKNAME".encode('ascii'))
-        nickname = client.recv(1024).decode('ascii')
+            client.send("NICKNAME".encode('utf-8'))
+            nickname = client.recv(1024)
 
-        nicknames.append(nickname)
-        clients.append(client)
+            nicknames.append(nickname)
+            clients.append(client)
 
-        print(f"Nickname of the client is {nickname}!")
+            print(f"Nickname of the client is {nickname}!")
+            broadcast(f"{nickname} connected to the server!\n".encode("utf-8"))
+            client.send("Connected to the server".encode("utf-8"))
 
-        thread = threading.Thread(target=handle, args=(client,))
-        thread.start()
+            thread = threading.Thread(target=handle, args=(client,))
+            thread.start()
+        except Exception as ex:
+            print(ex)
 
 
 print(f"Server is starting at IP: {SERVER_IP} at PORT: {PORT}")
