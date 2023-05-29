@@ -93,8 +93,24 @@ def SDES(message, key, type):
     
     else:
         return "ERROR"
+    
 
-def get_SDES_key(length):
+def get_SDES_key(secret):
+
+    bin_values = convert_str_bin(secret)
+    key = ""
+    for i in range(10):
+
+        if (len(bin_values) > i):
+            index = (random.randint(0, 7))
+            key += (bin_values[i][index])
+        else:
+            index = str(random.randint(0, 1))
+            key += index
+
+    return key
+
+def get_Random_SDES_key(length):
 
     randomStr = ''.join(random.choice(string.ascii_letters) for i in range(length))
     bin_values = convert_str_bin(randomStr)

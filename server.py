@@ -19,7 +19,7 @@ clients = []
 nicknames = []
 keys = []
 
-public_key = utils.get_SDES_key(10)
+public_key = utils.get_Random_SDES_key(10)
 
 def get_NICKNAME(given_nickname):
     
@@ -68,6 +68,7 @@ def broadcast(message, decrypt = False):
             client.send(message)
 
 def handle(client):
+
     while True:
         try:
             message = client.recv(1024).decode('utf-8')
@@ -81,11 +82,8 @@ def handle(client):
                 send_DM(direct_message)
 
             elif "GET NICKNAME" in message:
-                print(message.split())
                 user_nickname = message.split()[2]
                 given_nickname = message.split()[3]
-                print(user_nickname)
-                print(given_nickname)
                 status = get_NICKNAME(given_nickname)
                 send_req(status, user_nickname)
 
@@ -103,6 +101,7 @@ def handle(client):
             break
 
 def receive():
+
     while True:
         try:
             client, address = server.accept()

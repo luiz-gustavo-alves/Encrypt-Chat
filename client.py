@@ -22,9 +22,16 @@ class Client:
         user_nickname, decrypt_message = utils.SDES(crypt_message, key, "D") 
         decrypt_message = f"{user_nickname}: {decrypt_message}"
         return decrypt_message
-    
+
     def get_send_to(self):
         self.sendTo = (self.send_to_entry.get())
+
+    def get_secret_key_SDES(self):
+        self.secret_key_SDES = utils.get_SDES_key((self.secret_key_entry.get()))
+        print(self.secret_key_SDES)
+
+    def get_secret_key_RC4(self):
+        pass
     
     def receive(self):
 
@@ -117,14 +124,29 @@ class Client:
 
         self.send_to_label = tkinter.Label(self.window, text="Send to (nickname): ", bg="lightgray")
         self.send_to_label.config(font=("Arial", 12))
-        self.send_to_label.pack(padx=20, pady=5)
+        self.send_to_label.pack(padx=10, pady=10, side=tkinter.LEFT)
 
         self.send_to_entry = tkinter.Entry(self.window)
-        self.send_to_entry.pack(padx=20, pady=5)
+        self.send_to_entry.pack(padx=10, pady=10, side=tkinter.LEFT)
 
         self.send_to_button = tkinter.Button(self.window, text="Send to", command=self.get_send_to)
         self.send_to_button.config(font=("Arial", 12))
-        self.send_to_button.pack(padx=20, pady=5)
+        self.send_to_button.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.secret_key_label = tkinter.Label(self.window, text="Secret Key: ", bg="lightgray")
+        self.secret_key_label.config(font=("Arial", 12))
+        self.secret_key_label.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.secret_key_entry = tkinter.Entry(self.window)
+        self.secret_key_entry.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.secret_key_button_SDES = tkinter.Button(self.window, text="SDES", command=self.get_secret_key_SDES)
+        self.secret_key_button_SDES.config(font=("Arial", 12))
+        self.secret_key_button_SDES.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.secret_key_button_RC4 = tkinter.Button(self.window, text="RC4", command=self.get_secret_key_RC4)
+        self.secret_key_button_RC4.config(font=("Arial", 12))
+        self.secret_key_button_RC4.pack(padx=10, pady=10, side=tkinter.LEFT)
 
         self.gui_done = True
         self.window.protocol("WM_DELETE_WINDOW", self.stop)
@@ -140,6 +162,7 @@ class Client:
         self.running = True
 
         self.sendTo = "Broadcast"
+        self.secret_key_SDES = ""
 
         gui_thread = threading.Thread(target=self.gui_loop)
         receive_thread = threading.Thread(target=self.receive)
