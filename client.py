@@ -45,6 +45,11 @@ class Client:
             try:
                 message = self.sock.recv(1024).decode('utf-8')
 
+                ## Empty string after removing client from server
+                if not message:
+                    print("User left the server...")
+                    break
+
                 if message == "NICKNAME":
                     self.sock.send(self.format_nickname(self.nickname).encode('utf-8'))
                 elif "DECRYPT" in message:
@@ -89,9 +94,10 @@ class Client:
 
     def stop(self):
         
+        self.sock.send("/q".encode("utf-8"))
+        self.sock.close()
         self.running = False
         self.window.destroy()
-        self.sock.close()
         exit(0)
 
     def gui_loop(self):
@@ -149,7 +155,7 @@ class Client:
         self.secret_key_button_RC4.pack(padx=10, pady=10, side=tkinter.LEFT)
 
         self.gui_done = True
-        self.window.protocol("WM_DELETE_WINDOW", self.stop)
+        self.window.wm_protocol("WM_DELETE_WINDOW", self.stop)
         self.window.mainloop()
 
     def __init__(self):
