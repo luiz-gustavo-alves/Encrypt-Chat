@@ -21,6 +21,14 @@ keys = []
 
 public_key = utils.get_SDES_key(10)
 
+def get_NICKNAME(given_nickname):
+    
+    for nickname in nicknames:
+        if (given_nickname == nickname):
+            return "200"
+        
+    return "400"
+
 def send_DM(message):
 
     indexes_pair = utils.get_indexes_pair(message, nicknames)
@@ -39,6 +47,17 @@ def send_DM(message):
                 break
         
         client_counter += 1
+
+def send_req(status, user_nickname):
+
+    i = 0
+    for client in clients:
+
+        if (nicknames[i] == user_nickname):
+            client.send(f"{status}".encode('utf-8'))
+            return
+        
+        i += 1
 
 def broadcast(message, decrypt = False):
 
@@ -60,6 +79,15 @@ def handle(client):
             elif "DM" in message:
                 direct_message = message.replace("DM", "")
                 send_DM(direct_message)
+
+            elif "GET NICKNAME" in message:
+                print(message.split())
+                user_nickname = message.split()[2]
+                given_nickname = message.split()[3]
+                print(user_nickname)
+                print(given_nickname)
+                status = get_NICKNAME(given_nickname)
+                send_req(status, user_nickname)
 
         except Exception as ex:
             # User disconect or connection refused

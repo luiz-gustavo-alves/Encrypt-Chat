@@ -61,9 +61,16 @@ class Client:
     def write(self):
         message = f"{self.input_area.get('1.0', 'end')}"
 
-        print(self.sendTo)
-        
-        if (self.sendTo == "Broadcast" or len(self.sendTo) == 0):
+        ## Check if sendTo nickname (message via DM) exists in server
+        self.sock.send(f"GET NICKNAME {self.nickname} {self.sendTo}".encode('utf-8'))
+        status = self.sock.recv(1024).decode('utf-8')
+
+        ## Nickname not found
+        if (status == "400"):
+            self.sendTo = "Broadcast"
+            self.send_to_entry.delete(0, tkinter.END)
+
+        if (self.sendTo == "Broadcast"):
             crypt_message = f'{self.nickname}: {utils.SDES(message, self.public_key, "C")}'
             self.sock.send(f"BROADCAST{crypt_message}".encode('utf-8'))
 
@@ -139,14 +146,5 @@ class Client:
 
         gui_thread.start()
         receive_thread.start()
-
-
-## def write():
-   ## while True:
-     ##   message = f'{input("")}'
-     ##   crypt_message = f'{nickname}: {utils.SDES(message, public_key, "C")}'
-     ##   client.send(f"BROADCAST{crypt_message}".encode('utf-8'))
-        ## crypt_message = f'{nickname} to vasco: {utils.SDES(message, public_key, "C")}'
-        ## client.send(f"DM{crypt_message}".encode('utf-8'))
 
 client = Client()
