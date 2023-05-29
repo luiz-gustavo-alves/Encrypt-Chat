@@ -47,7 +47,7 @@ class Client:
 
                 ## Empty string after removing client from server
                 if not message:
-                    print("User left the server...")
+                    print("Leaving the server...")
                     break
 
                 if message == "NICKNAME":
@@ -75,12 +75,15 @@ class Client:
 
         ## Check if sendTo nickname (message via DM) exists in server
         self.sock.send(f"GET NICKNAME {self.nickname} {self.sendTo}".encode('utf-8'))
-        status = self.sock.recv(1024).decode('utf-8')
+        request = self.sock.recv(1024).decode('utf-8').split()
 
         ## Nickname not found
-        if (status == "400"):
+        if (request[0] == "400"):
             self.sendTo = "Broadcast"
             self.send_to_entry.delete(0, tkinter.END)
+
+        else:
+            self.sendTo = request[1]
 
         if (self.sendTo == "Broadcast"):
             crypt_message = f'{self.nickname}: {utils.SDES(message, self.public_key, "C")}'

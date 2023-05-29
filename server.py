@@ -22,13 +22,17 @@ keys = []
 
 public_key = utils.get_Random_SDES_key(10)
 
-def get_NICKNAME(given_nickname):
-    
-    for nickname in nicknames:
-        if (given_nickname == nickname):
-            return "200"
+def get_client(request):
+
+    i = 0
+    for client in clients:
+
+        if (nicknames[i] == request or addresses[i] == request):
+            return ("200", nicknames[i])
         
-    return "400"
+        i += 1
+        
+    return ("400", None)
 
 def send_DM(message):
 
@@ -49,13 +53,13 @@ def send_DM(message):
         
         client_counter += 1
 
-def send_req(status, user_nickname):
+def send_req(status, user_nickname, request_nickname):
 
     i = 0
     for client in clients:
 
         if (nicknames[i] == user_nickname):
-            client.send(f"{status}".encode('utf-8'))
+            client.send(f"{status} {request_nickname}".encode('utf-8'))
             return
         
         i += 1
@@ -103,9 +107,9 @@ def handle(client):
 
                 elif "GET NICKNAME" in message:
                     user_nickname = message.split()[2]
-                    given_nickname = message.split()[3]
-                    status = get_NICKNAME(given_nickname)
-                    send_req(status, user_nickname)
+                    request = message.split()[3]
+                    status, request_nickname = get_client(request)
+                    send_req(status, user_nickname, request_nickname)
 
                 elif "/q" in message:
                     remove_user(client)
