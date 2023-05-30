@@ -131,17 +131,21 @@ def RC4(message, key, type):
 
         message = message.encode('utf-8')
         crypt_message = clib_RC4.RC4(message, key)
+        print(f"bytes {crypt_message} | {key}")
+
         return crypt_message
 
     elif (type == "D"):
-        print(message)
+
         index = message.index(":")
         nickname = message[:index]
         message = message[(index + 2):]
 
-        print(message)
+        decrypt_message = clib_RC4.RC4(message, key)
+        decrypt_message = clib_RC4.RC4(decrypt_message, key).decode('latin-1')
 
-        decrypt_message = (clib_RC4.RC4(message, key)).decode('utf-8')
+        print(f"{decrypt_message}")
+
         return nickname, decrypt_message
 
     return "ERROR"
