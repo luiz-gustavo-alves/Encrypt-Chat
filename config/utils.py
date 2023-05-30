@@ -5,10 +5,14 @@ import string
 import os
 
 SDES_abspath = os.path.abspath("config/C/SDES.so")
-
 dll_SDES = (SDES_abspath)
 clib_SDES = CDLL(dll_SDES)
 clib_SDES.simple_des.restype = c_char_p
+
+RC4_abspath = os.path.abspath("config/C/RC4.so")
+dll_RC4 = (RC4_abspath)
+clib_RC4 = CDLL(dll_RC4)
+clib_RC4.RC4.restype = c_char_p
 
 def get_indexes_pair(message, nicknames):
     
@@ -36,6 +40,32 @@ def convert_bin_str(bin_values):
         ascii_str += chr(int(bin_value, 2))
 
     return ascii_str
+
+def get_SDES_key(secret):
+
+    bin_values = convert_str_bin(secret)
+    key = ""
+    for i in range(10):
+
+        if (len(bin_values) > i):
+            index = (random.randint(0, 7))
+            key += (bin_values[i][index])
+        else:
+            index = str(random.randint(0, 1))
+            key += index
+
+    return key
+
+def get_Random_SDES_key(length):
+
+    randomStr = ''.join(random.choice(string.ascii_letters) for i in range(length))
+    bin_values = convert_str_bin(randomStr)
+    key = ""
+    for i in range(length):
+        index = (random.randint(0, 7))
+        key += (bin_values[i][index])
+
+    return key
 
 def chunk_bin_values(bin_values):
 
@@ -91,32 +121,27 @@ def SDES(message, key, type):
         decrypt_message = convert_bin_str(decrypt_values)
         return nickname, decrypt_message
     
-    else:
-        return "ERROR"
-    
+    return "ERROR"
 
-def get_SDES_key(secret):
+def RC4(message, key, type):
 
-    bin_values = convert_str_bin(secret)
-    key = ""
-    for i in range(10):
+    key = key.encode('utf-8')
 
-        if (len(bin_values) > i):
-            index = (random.randint(0, 7))
-            key += (bin_values[i][index])
-        else:
-            index = str(random.randint(0, 1))
-            key += index
+    if (type == "C"):
 
-    return key
+        message = message.encode('utf-8')
+        crypt_message = clib_RC4.RC4(message, key)
+        return crypt_message
 
-def get_Random_SDES_key(length):
+    elif (type == "D"):
+        print(message)
+        index = message.index(":")
+        nickname = message[:index]
+        message = message[(index + 2):]
 
-    randomStr = ''.join(random.choice(string.ascii_letters) for i in range(length))
-    bin_values = convert_str_bin(randomStr)
-    key = ""
-    for i in range(length):
-        index = (random.randint(0, 7))
-        key += (bin_values[i][index])
+        print(message)
 
-    return key
+        decrypt_message = (clib_RC4.RC4(message, key)).decode('utf-8')
+        return nickname, decrypt_message
+
+    return "ERROR"

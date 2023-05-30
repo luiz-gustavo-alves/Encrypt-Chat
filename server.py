@@ -92,6 +92,8 @@ def remove_user(client):
 
 def handle(client):
 
+    client.send("Connected to the server\n".encode("utf-8"))
+
     while True:
         try:
             if client in clients:
@@ -141,7 +143,6 @@ def receive():
 
             print(f"Nickname of the client is {nickname}!")
             broadcast(f"[*] {nickname} connected to the chat!\n".encode("utf-8"))
-            client.send("Connected to the server\n".encode("utf-8"))
 
             thread = threading.Thread(target=handle, args=(client,))
             thread.start()

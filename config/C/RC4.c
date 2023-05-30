@@ -15,7 +15,6 @@
 #define MAX_BYTES 256
 
 unsigned char cipherText[MAX_BYTES];
-unsigned char *output;
 
 void swap(unsigned char *a, unsigned char *b) {
 
@@ -57,6 +56,7 @@ unsigned char *PRGA(unsigned char *S, unsigned char *text) {
 		j = (j + S[i]) % MAX_BYTES;
 		swap(&S[i], &S[j]);
 		cipherText[k] = S[(S[i] + S[j]) % MAX_BYTES] ^ text[k];
+		printf("%d", cipherText[k]);
 	}
 }
 
@@ -67,15 +67,5 @@ const char *RC4(unsigned char *text, unsigned char *key) {
 	KSA(S, key);
 	PRGA(S, text);
 
-	output = (unsigned char*)malloc(MAX_BYTES * sizeof(unsigned char));
-	
-	int textLen = strlen((char*) text);
-	unsigned char str[MAX_BYTES];
-
-	int i;
-	for (i = 0; i < textLen; i++) {
-	    sprintf(str, "%x:", cipherText[i]);
-	    strcat(output, str);
-	}
-	return output;
+	return cipherText;
 }
