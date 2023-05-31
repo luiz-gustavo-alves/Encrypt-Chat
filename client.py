@@ -8,7 +8,6 @@ import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
 
-HOST = "127.0.0.1"
 PORT = 3000
 
 class Client:
@@ -23,18 +22,7 @@ class Client:
         self.key_label.config(text="PUBLIC")
 
     def use_skey(self):
-        ## User request to use secret kek
-
-        if (self.using_algorithm == "SDES" and len(self.secret_key_SDES) == 0):
-            print("Empty secret key.")
-            self.use_pkey()
-            return
-
-        elif (self.using_algorithm == "RC4" and len(self.secret_key_RC4) == 0):
-            print("Empty secret key.")
-            self.use_pkey()
-            return
-
+        ## User request to use secret key
         self.using_key = "Secret"
         self.key_label.config(text="SECRET")
 
@@ -46,18 +34,16 @@ class Client:
     def get_secret_key_SDES(self):
         ## User request to use SDES secret key
         key = self.secret_key_entry.get()
-        if (len(key) > 0):
-            self.secret_key_SDES = utils.get_SDES_key(key)
-            self.using_algorithm = "SDES"
-            self.algorithm_label.config(text="SDES")
+        self.secret_key_SDES = utils.get_SDES_key(key)
+        self.using_algorithm = "SDES"
+        self.algorithm_label.config(text="SDES")
 
     def get_secret_key_RC4(self):
         ## User request to use RC4 secret key
         key = self.secret_key_entry.get()
-        if (len(key) > 0):
-            self.secret_key_RC4 = key
-            self.using_algorithm = "RC4"
-            self.algorithm_label.config(text="RC4")
+        self.secret_key_RC4 = key
+        self.using_algorithm = "RC4"
+        self.algorithm_label.config(text="RC4")
 
     def decrypt_message_SDES(self, message, key):
         crypt_message = message.replace("DECRYPT ", "")
@@ -130,6 +116,8 @@ class Client:
 
             try:
                 message = self.sock.recv(1024).decode('utf-8')
+                ## Message from server
+                ## print(message)
 
                 ## Empty string after removing client from server
                 if not message:
@@ -138,14 +126,12 @@ class Client:
                 
                 ## Server request to get user nickname
                 if message == "NICKNAME":
-                    self.sock.send(self.format_nickname(self.nickname).encode('utf-8'))
+                    self.sock.send(self.nickname.encode('utf-8'))
 
                 ## Decrypt messages using Public Key (Broadcast)
                 elif "DECRYPT" in message:
                     
                     ## Encrypted BROADCAST message
-                    ## print(message)
-
                     decrypt_message = self.decrypt_message_SDES(message, self.public_key)
                     self.text_area.config(state='normal')
                     self.text_area.insert('end', decrypt_message)
@@ -155,8 +141,6 @@ class Client:
                 elif "PKEY" in message:
 
                     ## Encrypted DM message (Public Key)
-                    ## print(message)
-
                     if "SDES" in message:
                         crypted_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
                         decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key)
@@ -176,8 +160,6 @@ class Client:
                 elif "SKEY" in message:
 
                     ## Encrypted DM message (Secret Key)
-                    ## print(message)
-
                     if "SDES" in message:
                         crypted_key = message.split()[1]
                         self.secret_key_SDES, _ = utils.SDES(crypted_key, self.public_key, "D", send_nickname=False)
@@ -299,12 +281,17 @@ class Client:
 
     def __init__(self):
 
+        IP_window = tkinter.Tk()
+        IP_window.withdraw()
+
+        self.HOST_IP = simpledialog.askstring("IP", "IP:", parent=IP_window)
+
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((HOST, PORT))
+            self.sock.connect((self.HOST_IP, PORT))
         except:
             print(f"Connection refused to the server.")
-            print(f"Requested IP: {HOST} | Requested PORT: {PORT}")
+            print(f"Requested IP: {self.HOST_IP} | Requested PORT: {PORT}")
             exit(-1)
 
         nickname_window = tkinter.Tk()
@@ -312,6 +299,8 @@ class Client:
 
         # TODO: fix bug related to user pressing enter
         self.nickname = simpledialog.askstring("Nickname", "Please, choose a Nickname:", parent=nickname_window)
+
+        self.nickname = self.format_nickname(self.nickname)
         self.gui_done = False
         self.running = True
 

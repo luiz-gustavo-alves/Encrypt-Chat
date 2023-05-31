@@ -3,12 +3,9 @@ from config import utils
 import traceback
 import socket
 import threading
-
 import subprocess
 
-SERVER_IP = subprocess.check_output(['hostname', '-s', '-I']).decode('utf-8')[:-1]
-
-HOST = "127.0.0.1"
+HOST = input("Digite o IP do servidor: (EX - 127.0.0.1): ")
 PORT = 3000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -166,5 +163,5 @@ def receive():
             traceback.print_exc()
             exit(-1)
 
-print(f"Server is starting at IP: {SERVER_IP} at PORT: {PORT}")
+print(f"Server is starting at IP: {HOST} and at PORT: {PORT}")
 receive()
