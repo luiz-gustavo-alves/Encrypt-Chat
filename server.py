@@ -18,7 +18,6 @@ server.listen()
 clients = []
 addresses = []
 nicknames = []
-keys = []
 
 public_key = utils.get_Random_SDES_key(10)
 
@@ -34,7 +33,7 @@ def get_client(request):
         
     return ("400", None)
 
-def send_DM(message):
+def send_DM(message, key = "None"):
 
     indexes_pair = utils.get_indexes_pair(message, nicknames)
 
@@ -43,7 +42,13 @@ def send_DM(message):
     for client in clients:
         
         if (client_counter in indexes_pair):
-            client.send(f"DECRYPT {message}".encode('utf-8'))
+
+            if (key == "None"):
+                client.send(f"DECRYPT {message}".encode('utf-8'))
+
+            else:
+               client.send(f"SKEY {key} {message}".encode('utf-8'))
+
             num_request += 1
             
             if (num_request < 2):
@@ -112,6 +117,11 @@ def handle(client):
                     request = message.split()[3]
                     status, request_nickname = get_client(request)
                     send_req(status, user_nickname, request_nickname)
+
+                elif "SKEY" in message:
+                    key = message.split()[5]
+                    message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
+                    send_DM(message, key)
 
                 elif "/q" in message:
                     remove_user(client)

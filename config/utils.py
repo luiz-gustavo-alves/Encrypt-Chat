@@ -67,11 +67,17 @@ def get_Random_SDES_key(length):
 
     return key
 
-def chunk_bin_values(bin_values):
+def chunk_bin_values(bin_values, sendNickname = True):
 
-    index = bin_values.index(":")
-    nickname = bin_values[:index]
-    message = bin_values[(index + 2):]
+    nickname = ""
+
+    if (sendNickname):
+        index = bin_values.index(":")
+        nickname = bin_values[:index]
+        message = bin_values[(index + 2):]
+
+    else:
+        message = bin_values
 
     chunk = 8
     counter = 0
@@ -86,13 +92,13 @@ def chunk_bin_values(bin_values):
             chunked_bin_values += " " + bin_value
             counter = 1
 
-    return nickname, chunked_bin_values
+    return chunked_bin_values, nickname
 
 def join_bin_values(bin_values):
     bin_values = ''.join(bin_values.split())
     return [bin_values[i:i+8] for i in range(0, len(bin_values), 8)] 
 
-def SDES(message, key, type):
+def SDES(message, key, type, sendNickname = True):
 
     key = key.encode('utf-8')
 
@@ -110,7 +116,13 @@ def SDES(message, key, type):
 
     elif (type == "D"):
 
-        nickname, crypt_message = chunk_bin_values(message)
+        nickname = ""
+
+        if (sendNickname):
+            crypt_message, nickname = chunk_bin_values(message)
+        else:
+            crypt_message, _ = chunk_bin_values(message, sendNickname=False)
+
         crypt_message = join_bin_values(crypt_message)
         decrypt_values = []
 
@@ -119,7 +131,7 @@ def SDES(message, key, type):
             decrypt_values.append((clib_SDES.simple_des(bin_value, key, 2)).decode('utf-8'))
 
         decrypt_message = convert_bin_str(decrypt_values)
-        return nickname, decrypt_message
+        return decrypt_message, nickname
     
     return "ERROR"
 

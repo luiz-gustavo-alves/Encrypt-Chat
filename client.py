@@ -19,23 +19,28 @@ class Client:
 
     def decrypt_message(self, message, key):
         crypt_message = message.replace("DECRYPT ", "")
-        user_nickname, decrypt_message = utils.RC4(crypt_message, key, "D") 
+        decrypt_message, user_nickname = utils.SDES(crypt_message, key, "D")
         decrypt_message = f"{user_nickname}: {decrypt_message}"
         return decrypt_message
     
     def use_pkey(self):
+        ## User request to use public key
         self.using_key = "Public"
 
     def use_skey(self):
+        ## User request to use secret key
         self.using_key = "Secret"
 
     def get_send_to(self):
-        self.sendTo = (self.send_to_entry.get())
+        ## User request to send Direct Messages
+        self.sendTo = self.send_to_entry.get()
 
     def get_secret_key_SDES(self):
-        self.secret_key_SDES = utils.get_SDES_key((self.secret_key_entry.get()))
+        ## User request to use SDES secret key
+        self.secret_key_SDES = utils.get_SDES_key(self.secret_key_entry.get())
 
     def get_secret_key_RC4(self):
+        ## User request to use RC4 secret key
         pass
     
     def receive(self):
@@ -50,16 +55,21 @@ class Client:
 
             try:
                 message = self.sock.recv(1024).decode('utf-8')
-                print(message)
 
                 ## Empty string after removing client from server
                 if not message:
+
                     print("Leaving the server...")
                     break
-
+                
+                ## Server request to get user nickname
                 if message == "NICKNAME":
+
                     self.sock.send(self.format_nickname(self.nickname).encode('utf-8'))
+
+                ## Decrypt messages using Public Key (Broadcast or Server messages)
                 elif "DECRYPT" in message:
+                    
                     ## Crypted message
                     ## print(message)
 
@@ -68,6 +78,24 @@ class Client:
                     self.text_area.insert('end', decrypt_message)
                     self.text_area.yview('end')
                     self.text_area.config(state='disabled')
+
+                ## Decrypt messages using Secret Key (DM messages)
+                elif "SKEY" in message:
+
+                    crypted_key = message.split()[1]
+                    crypted_message = f"{message.split()[2]} {message.split()[3]} {message.split()[4]} {message.split()[5]}"
+
+                    ## Crypted message
+                    ## print(crypted_message)
+
+                    self.secret_key_SDES, _ = utils.SDES(crypted_key, self.public_key, "D", sendNickname=False)
+                    decrypt_message = self.decrypt_message(crypted_message, self.secret_key_SDES)
+
+                    self.text_area.config(state='normal')
+                    self.text_area.insert('end', decrypt_message)
+                    self.text_area.yview('end')
+                    self.text_area.config(state='disabled')
+
                 else:
                     if self.gui_done:
                         self.text_area.config(state='normal')
@@ -88,35 +116,38 @@ class Client:
         self.sock.send(f"GET NICKNAME {self.nickname} {self.sendTo}".encode('utf-8'))
         request = self.sock.recv(1024).decode('utf-8').split()
 
-        ## sentTo nickname not found
+        ## Requested nickname not found
         if (request[0] == "400"):
             self.sendTo = "Broadcast"
             self.send_to_entry.delete(0, tkinter.END)
 
-        ## sentTo nickname found
-        else:
+        ## Requested nickname found
+        elif (request[0] == "200"):
             self.sendTo = request[1]
 
         if (self.sendTo == "Broadcast"):
-            crypt_message = f'{self.nickname}: {utils.RC4(message, self.public_key, "C")}'
+            crypt_message = f'{self.nickname}: {utils.SDES(message, self.public_key, "C")}'
             self.sock.send(f"BROADCAST{crypt_message}".encode('utf-8'))
 
-        else:
+        elif (self.sendTo != "Broadcast"):
 
             if (self.using_key == "Public"):
                 key = self.public_key
+                crypt_message = f'{self.nickname} to {self.sendTo}: {utils.SDES(message, key, "C")}'
+                self.sock.send(f"DM{crypt_message}".encode('utf-8'))
 
-            else:
+            elif (self.using_key == "Secret"):
                 key = self.secret_key_SDES
-                self.sock.send(f"SKEY {key}".encode('utf-8'))
-
-            crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4(message, key, "C")}'
-            self.sock.send(f"DM{crypt_message}".encode('utf-8'))
+                crypt_message = f'{self.nickname} to {self.sendTo}: {utils.SDES(message, key, "C")}'
+                crypted_key = utils.SDES(key, self.public_key, "C")
+                self.sock.send(f'SKEY {crypt_message} {crypted_key}'.encode('utf-8'))
 
         self.input_area.delete('1.0', 'end')
 
     def stop(self):
         
+        ## STOP GUI (close socket and exit the program)
+
         self.sock.send("/q".encode("utf-8"))
         self.sock.close()
         self.running = False
@@ -124,6 +155,8 @@ class Client:
         exit(0)
 
     def gui_loop(self):
+
+        ## Build GUI
 
         self.window = tkinter.Tk()
         self.window.title(f"NICKNAME {self.nickname}")
@@ -148,14 +181,14 @@ class Client:
         self.send_button.config(font=("Arial", 12))
         self.send_button.pack(padx=20, pady=5)
 
-        self.send_to_label = tkinter.Label(self.window, text="Send to (nickname): ", bg="lightgray")
+        self.send_to_label = tkinter.Label(self.window, text="Send to (IP or nickname): ", bg="lightgray")
         self.send_to_label.config(font=("Arial", 12))
         self.send_to_label.pack(padx=10, pady=10, side=tkinter.LEFT)
 
         self.send_to_entry = tkinter.Entry(self.window)
         self.send_to_entry.pack(padx=10, pady=10, side=tkinter.LEFT)
 
-        self.send_to_button = tkinter.Button(self.window, text="Send to", command=self.get_send_to)
+        self.send_to_button = tkinter.Button(self.window, text="Send DM", command=self.get_send_to)
         self.send_to_button.config(font=("Arial", 12))
         self.send_to_button.pack(padx=10, pady=10, side=tkinter.LEFT)
 
