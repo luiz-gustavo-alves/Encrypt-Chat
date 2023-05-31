@@ -9,10 +9,12 @@ dll_SDES = (SDES_abspath)
 clib_SDES = CDLL(dll_SDES)
 clib_SDES.simple_des.restype = c_char_p
 
+"""
 RC4_abspath = os.path.abspath("config/C/RC4.so")
 dll_RC4 = (RC4_abspath)
 clib_RC4 = CDLL(dll_RC4)
 clib_RC4.RC4.restype = c_char_p
+"""
 
 def get_indexes_pair(message, nicknames):
     
@@ -135,27 +137,88 @@ def SDES(message, key, type, send_nickname = True):
     
     return "ERROR"
 
+def KSA(S, K):
+	
+    for i in range(256):
+        S.append(i)
+
+    j = 0
+    for i in range (256):
+        j = (j + S[i] + K[i % len(K)]) % 256
+        S[i], S[j] = S[j], S[i]
+
+def PGRA_crypt(S, message):
+
+    i = j = 0
+    crypted_message = []
+
+    for k in range(len(message)):
+        i = (i + 1) % 256;
+        j = (j + S[i]) % 256;
+        S[i], S[j] = S[j], S[i]
+        crypted_message.append(hex(S[(S[i] + S[j]) % 256] ^ message[k]))
+
+    return ''.join(crypted_message)
+
+def PGRA_decrypt(S, message):
+
+    i = j = 0
+    decrypted_message = []
+
+    for k in range(len(message)):
+            i = (i + 1) % 256;
+            j = (j + S[i]) % 256;
+            S[i], S[j] = S[j], S[i]
+            decrypted_message.append(chr(S[(S[i] + S[j]) % 256] ^ message[k]))
+
+    return ''.join(decrypted_message)
+
+def RC4_crypt(message, key):
+	
+    S = []
+    message = [ord(char) for char in message]
+    key = [ord(char) for char in key]
+
+    KSA(S, key)
+
+    crypted_message = PGRA_crypt(S, message)
+    return crypted_message
+
+def RC4_decrypt(crypted_message, key):
+	
+    S = []
+    key = [ord(char) for char in key]
+
+    KSA(S, key)
+    
+    crypted_list = crypted_message.split("0x")
+    crypted_list.pop(0)
+
+    for i in range(len(crypted_list)):
+        crypted_list[i] = int(crypted_list[i], 16)
+
+    decrypted_message = PGRA_decrypt(S, crypted_list)
+    return decrypted_message
+
+"""
 def RC4(message, key, type):
 
     key = key.encode('utf-8')
-    print(f"MSG: {message} | key: {key}")
 
     if (type == "C"):
 
         message = message.encode('utf-8')
-
         crypt_message = clib_RC4.RC4(message, key)
-        print(f"C MSG {crypt_message} | KEY {key}")
+        print(f"bytes {crypt_message} | {key}")
 
         return crypt_message
 
     elif (type == "D"):
 
-        decrypt_message = (clib_RC4.RC4(message, key))
-        print(f"D(1) MSG {decrypt_message} | KEY {key}")
-        decrypt_message = (clib_RC4.RC4(decrypt_message, key)).decode('utf-8')
-        print(f"D(2) MSG {decrypt_message} | KEY {key}")
+        index = message.index(":")
+        nickname = message[:index]
+        message = message[(index + 2):]
 
-        return decrypt_message
-
-    return "ERROR"
+        decrypt_message = clib_RC4.RC4(message, key).decode('utf-8')
+        return nickname, decrypt_message
+"""

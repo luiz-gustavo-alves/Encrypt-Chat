@@ -100,7 +100,7 @@ class Client:
                     crypt_message = f'{self.nickname} to {self.sendTo}: {utils.SDES(message, key, "C")}'
 
                 elif (self.using_algorithm == "RC4"):
-                    crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4(message, key, "C")}'
+                    crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4_crypt(message, key)}'
 
                 self.sock.send(f"DM {crypt_message} {self.using_algorithm}".encode('utf-8'))
 
@@ -115,7 +115,8 @@ class Client:
 
                 elif (self.using_algorithm == "RC4"):
                     key = self.secret_key_RC4
-                    crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4(message, key, "C")}'
+                    crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4_crypt(message, key)}'
+                    crypted_key = utils.RC4_crypt(key, self.public_key)
                     self.sock.send(f'SKEY {crypt_message} {key} RC4'.encode('utf-8'))
 
         self.input_area.delete('1.0', 'end')
@@ -153,6 +154,9 @@ class Client:
 
                 elif "PKEY" in message:
 
+                    ## Encrypted DM message (Public Key)
+                    ## print(message)
+
                     if "SDES" in message:
                         crypted_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
                         decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key)
@@ -160,8 +164,8 @@ class Client:
                     elif "RC4" in message:
                         nicknames = f"{message.split()[1]} {message.split()[2]} {message.split()[3]}"
                         content = message.split()[4]
-                        decrypt_message = utils.RC4(content, self.public_key, "D")
-                        decrypt_message = f"{nicknames} {decrypt_message}\n"
+                        decrypt_message = utils.RC4_decrypt(content, self.public_key)
+                        decrypt_message = f"{nicknames} {decrypt_message}"
 
                     self.text_area.config(state='normal')
                     self.text_area.insert('end', decrypt_message)
@@ -171,8 +175,8 @@ class Client:
                 ## Decrypt messages using Secret Key (DM messages)
                 elif "SKEY" in message:
 
-                    ## Encrypted DM message
-                    ## print(crypted_message)
+                    ## Encrypted DM message (Secret Key)
+                    ## print(message)
 
                     if "SDES" in message:
                         crypted_key = message.split()[1]
@@ -181,12 +185,11 @@ class Client:
                         decrypt_message = self.decrypt_message_SDES(crypted_message, self.secret_key_SDES)
 
                     elif "RC4" in message:
-                        print(message)
                         self.secret_key_RC4 = message.split()[1]
                         nicknames = f"{message.split()[2]} {message.split()[3]} {message.split()[4]}"
                         crypted_message = message.split()[5]
-                        decrypt_message = utils.RC4(crypted_message, self.secret_key_RC4, "D")
-                        decrypt_message = f"{nicknames}: {decrypt_message}\n"
+                        decrypt_message = utils.RC4_decrypt(crypted_message, self.secret_key_RC4)
+                        decrypt_message = f"{nicknames} {decrypt_message}"
 
                     self.text_area.config(state='normal')
                     self.text_area.insert('end', decrypt_message)
@@ -208,7 +211,6 @@ class Client:
     def stop(self):
         
         ## STOP GUI (close socket and exit the program)
-
         self.sock.send("/q".encode("utf-8"))
         self.sock.close()
         self.running = False
@@ -218,7 +220,6 @@ class Client:
     def gui_loop(self):
 
         ## Build GUI
-
         self.window = tkinter.Tk()
         self.window.title(f"NICKNAME {self.nickname}")
         self.window.configure(bg="lightgray")
