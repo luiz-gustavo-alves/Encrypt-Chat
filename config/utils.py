@@ -67,11 +67,11 @@ def get_Random_SDES_key(length):
 
     return key
 
-def chunk_bin_values(bin_values, sendNickname = True):
+def chunk_bin_values(bin_values, send_nickname = True):
 
     nickname = ""
 
-    if (sendNickname):
+    if (send_nickname):
         index = bin_values.index(":")
         nickname = bin_values[:index]
         message = bin_values[(index + 2):]
@@ -98,7 +98,7 @@ def join_bin_values(bin_values):
     bin_values = ''.join(bin_values.split())
     return [bin_values[i:i+8] for i in range(0, len(bin_values), 8)] 
 
-def SDES(message, key, type, sendNickname = True):
+def SDES(message, key, type, send_nickname = True):
 
     key = key.encode('utf-8')
 
@@ -118,10 +118,10 @@ def SDES(message, key, type, sendNickname = True):
 
         nickname = ""
 
-        if (sendNickname):
+        if (send_nickname):
             crypt_message, nickname = chunk_bin_values(message)
         else:
-            crypt_message, _ = chunk_bin_values(message, sendNickname=False)
+            crypt_message, _ = chunk_bin_values(message, send_nickname=False)
 
         crypt_message = join_bin_values(crypt_message)
         decrypt_values = []
@@ -138,26 +138,24 @@ def SDES(message, key, type, sendNickname = True):
 def RC4(message, key, type):
 
     key = key.encode('utf-8')
+    print(f"MSG: {message} | key: {key}")
 
     if (type == "C"):
 
         message = message.encode('utf-8')
+
         crypt_message = clib_RC4.RC4(message, key)
-        print(f"bytes {crypt_message} | {key}")
+        print(f"C MSG {crypt_message} | KEY {key}")
 
         return crypt_message
 
     elif (type == "D"):
 
-        index = message.index(":")
-        nickname = message[:index]
-        message = message[(index + 2):]
+        decrypt_message = (clib_RC4.RC4(message, key))
+        print(f"D(1) MSG {decrypt_message} | KEY {key}")
+        decrypt_message = (clib_RC4.RC4(decrypt_message, key)).decode('utf-8')
+        print(f"D(2) MSG {decrypt_message} | KEY {key}")
 
-        decrypt_message = clib_RC4.RC4(message, key)
-        decrypt_message = clib_RC4.RC4(decrypt_message, key).decode('latin-1')
-
-        print(f"{decrypt_message}")
-
-        return nickname, decrypt_message
+        return decrypt_message
 
     return "ERROR"

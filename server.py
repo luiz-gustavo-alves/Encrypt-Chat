@@ -33,7 +33,7 @@ def get_client(request):
         
     return ("400", None)
 
-def send_DM(message, key = "None"):
+def send_DM(message, key = "Public", type="None"):
 
     indexes_pair = utils.get_indexes_pair(message, nicknames)
 
@@ -43,11 +43,11 @@ def send_DM(message, key = "None"):
         
         if (client_counter in indexes_pair):
 
-            if (key == "None"):
-                client.send(f"DECRYPT {message}".encode('utf-8'))
+            if (key == "Public"):
+                client.send(f"PKEY {message} {type}".encode('utf-8'))
 
             else:
-               client.send(f"SKEY {key} {message}".encode('utf-8'))
+                client.send(f"SKEY {key} {message} {type}".encode('utf-8'))
 
             num_request += 1
             
@@ -103,14 +103,18 @@ def handle(client):
         try:
             if client in clients:
                 message = client.recv(1024).decode('utf-8')
+                
+                ## Message from client
+                ## print(message)
 
                 if "BROADCAST" in message:
                     broadcast_message = message.replace("BROADCAST", "")
                     broadcast(broadcast_message, decrypt=True)
 
                 elif "DM" in message:
-                    direct_message = message.replace("DM", "")
-                    send_DM(direct_message)
+                    direct_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
+                    algorithm = {message.split()[5]}
+                    send_DM(direct_message, type=algorithm)
 
                 elif "GET NICKNAME" in message:
                     user_nickname = message.split()[2]
@@ -119,9 +123,10 @@ def handle(client):
                     send_req(status, user_nickname, request_nickname)
 
                 elif "SKEY" in message:
+                    recv_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
                     key = message.split()[5]
-                    message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
-                    send_DM(message, key)
+                    algorithm = message.split()[6]
+                    send_DM(recv_message, key=key, type=algorithm)
 
                 elif "/q" in message:
                     remove_user(client)
@@ -130,7 +135,6 @@ def handle(client):
             # User disconect or connection refused
             print('Exception in Server:', ex)
             traceback.print_exc()
-
             remove_user(client)
             break
 
@@ -156,8 +160,11 @@ def receive():
 
             thread = threading.Thread(target=handle, args=(client,))
             thread.start()
+
         except Exception as ex:
-            print(ex)
+            print('Exception in Server:', ex)
+            traceback.print_exc()
+            exit(-1)
 
 print(f"Server is starting at IP: {SERVER_IP} at PORT: {PORT}")
 receive()
