@@ -1,5 +1,8 @@
 from config import utils
 
+from config.encrypt.CBC import cbc_cripto, cbc_descripto
+from config.encrypt.ECB import ecb_cripto, ecb_descripto
+
 import traceback
 import socket
 import threading
@@ -26,6 +29,16 @@ class Client:
         self.using_key = "Secret"
         self.key_label.config(text="SECRET")
 
+    def use_ecb(self):
+        ## SDES ECB operation
+        self.sdes_op = "ECB"
+        self.sdes_op_label.config(text="ECB")
+
+    def use_cbc(self):
+        ## SDES CBC operation
+        self.sdes_op = "CBC"
+        self.sdes_op_label.config(text="CBC")
+
     def get_send_to(self):
         ## User request to send Direct Messages
         self.sendTo = self.send_to_entry.get()
@@ -45,10 +58,22 @@ class Client:
         self.using_algorithm = "RC4"
         self.algorithm_label.config(text="RC4")
 
-    def decrypt_message_SDES(self, message, key):
+    def decrypt_message_SDES(self, message, key, type = "Broadcast"):
         crypt_message = message.replace("DECRYPT ", "")
-        decrypt_message, user_nickname = utils.SDES(crypt_message, key, "D")
-        decrypt_message = f"{user_nickname}: {decrypt_message}"
+
+        if (type == "Broadcast"):
+            user_nickname = crypt_message.split()[0]
+            crypt_message = crypt_message.split()[1]
+        
+        elif (type == "DM"):
+            user_nickname = f"{crypt_message.split()[0]} {crypt_message.split()[1]} {crypt_message.split()[2]}"
+            crypt_message = crypt_message.split()[3]
+
+        else:
+            self.stop()
+
+        decrypt_message = cbc_descripto(crypt_message, key)
+        decrypt_message = f"{user_nickname} {decrypt_message}\n"
         return decrypt_message
 
     def write(self):
@@ -67,11 +92,12 @@ class Client:
         elif (request[0] == "200"):
             self.sendTo = request[1]
 
-        ## Broadcast uses public key and SDES encryption as default
+        ## Broadcast uses public key and SDES ECB encryption as default
         if (self.sendTo == "Broadcast"):
             self.chat_label.config(text="BROADCAST")
             self.key_label.config(text="PUBLIC")
-            crypt_message = f'{self.nickname}: {utils.SDES(message, self.public_key, "C")}'
+
+            crypt_message = f'{self.nickname}: {cbc_cripto(message.strip(), self.public_key)}'
             self.sock.send(f"BROADCAST{crypt_message}".encode('utf-8'))
 
         ## DM messages handler
@@ -83,7 +109,7 @@ class Client:
                 key = self.public_key
 
                 if (self.using_algorithm == "SDES"):
-                    crypt_message = f'{self.nickname} to {self.sendTo}: {utils.SDES(message, key, "C")}'
+                    crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.strip(), key)}'
 
                 elif (self.using_algorithm == "RC4"):
                     crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4_crypt(message, key)}'
@@ -95,8 +121,8 @@ class Client:
 
                 if (self.using_algorithm == "SDES"):
                     key = self.secret_key_SDES
-                    crypt_message = f'{self.nickname} to {self.sendTo}: {utils.SDES(message, key, "C")}'
-                    crypted_key = utils.SDES(key, self.public_key, "C")
+                    crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.split(), key)}'
+                    crypted_key = cbc_cripto(key, self.public_key)
                     self.sock.send(f'SKEY {crypt_message} {crypted_key} SDES'.encode('utf-8'))
 
                 elif (self.using_algorithm == "RC4"):
@@ -106,6 +132,7 @@ class Client:
                     self.sock.send(f'SKEY {crypt_message} {key} RC4'.encode('utf-8'))
 
         self.input_area.delete('1.0', 'end')
+        return 'break'
 
     def receive(self):
 
@@ -116,6 +143,7 @@ class Client:
 
             try:
                 message = self.sock.recv(1024).decode('utf-8')
+
                 ## Message from server
                 ## print(message)
 
@@ -143,7 +171,7 @@ class Client:
                     ## Encrypted DM message (Public Key)
                     if "SDES" in message:
                         crypted_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
-                        decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key)
+                        decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key, type="DM")
 
                     elif "RC4" in message:
                         nicknames = f"{message.split()[1]} {message.split()[2]} {message.split()[3]}"
@@ -162,9 +190,9 @@ class Client:
                     ## Encrypted DM message (Secret Key)
                     if "SDES" in message:
                         crypted_key = message.split()[1]
-                        self.secret_key_SDES, _ = utils.SDES(crypted_key, self.public_key, "D", send_nickname=False)
+                        self.secret_key_SDES = cbc_descripto(crypted_key, self.public_key)
                         crypted_message = f"{message.split()[2]} {message.split()[3]} {message.split()[4]} {message.split()[5]}"
-                        decrypt_message = self.decrypt_message_SDES(crypted_message, self.secret_key_SDES)
+                        decrypt_message = self.decrypt_message_SDES(crypted_message, self.secret_key_SDES, type="DM")
 
                     elif "RC4" in message:
                         self.secret_key_RC4 = message.split()[1]
@@ -251,6 +279,18 @@ class Client:
         self.secret_key_button_RC4.config(font=("Arial", 12))
         self.secret_key_button_RC4.pack(padx=10, pady=10, side=tkinter.LEFT)
 
+        self.sdes_op_label = tkinter.Label(self.window, text="Select SDES op: ", bg="lightgray")
+        self.sdes_op_label.config(font=("Arial", 16))
+        self.sdes_op_label.pack(padx=20, pady=5)
+        
+        self.use_ecb_button = tkinter.Button(self.window, text="ECB", command=self.use_ecb)
+        self.use_ecb_button.config(font=("Arial", 12))
+        self.use_ecb_button.pack(padx=20, pady=5)
+
+        self.use_cbc_button = tkinter.Button(self.window, text="CBC", command=self.use_cbc)
+        self.use_cbc_button.config(font=("Arial", 12))
+        self.use_cbc_button.pack(padx=20, pady=5)
+
         self.select_key_label = tkinter.Label(self.window, text="Select Key: ", bg="lightgray")
         self.select_key_label.config(font=("Arial", 16))
         self.select_key_label.pack(padx=20, pady=5)
@@ -274,6 +314,10 @@ class Client:
         self.algorithm_label = tkinter.Label(self.window, text="SDES", bg="lightgray")
         self.algorithm_label.config(font=("Arial", 12))
         self.algorithm_label.pack(padx=20, pady=5, side=tkinter.LEFT)
+
+        self.sdes_op_label = tkinter.Label(self.window, text="ECB", bg="lightgray")
+        self.sdes_op_label.config(font=("Arial", 12))
+        self.sdes_op_label.pack(padx=20, pady=5, side=tkinter)
 
         self.gui_done = True
         self.window.wm_protocol("WM_DELETE_WINDOW", self.stop)
@@ -307,6 +351,7 @@ class Client:
         self.using_key = "Public"
         self.sendTo = "Broadcast"
         self.using_algorithm = "SDES"
+        self.sdes_op = "ECB"
         self.secret_key_SDES = ""
         self.secret_key_RC4 = ""
 

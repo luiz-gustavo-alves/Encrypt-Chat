@@ -3,7 +3,6 @@ from config import utils
 import traceback
 import socket
 import threading
-import subprocess
 
 HOST = input("Digite o IP do servidor: (EX - 127.0.0.1): ")
 PORT = 3000
