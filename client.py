@@ -58,7 +58,8 @@ class Client:
         self.using_algorithm = "RC4"
         self.algorithm_label.config(text="RC4")
 
-    def decrypt_message_SDES(self, message, key, type = "Broadcast"):
+    def decrypt_message_SDES(self, message, key, type = "Broadcast", op = "ECB"):
+
         crypt_message = message.replace("DECRYPT ", "")
 
         if (type == "Broadcast"):
@@ -69,10 +70,13 @@ class Client:
             user_nickname = f"{crypt_message.split()[0]} {crypt_message.split()[1]} {crypt_message.split()[2]}"
             crypt_message = crypt_message.split()[3]
 
-        else:
-            self.stop()
+        if (op == "ECB"):
+            print(f"{crypt_message} | {key}")
+            decrypt_message = ecb_descripto(crypt_message, key)
 
-        decrypt_message = cbc_descripto(crypt_message, key)
+        elif (op == "CBC"):
+            decrypt_message = cbc_descripto(crypt_message, key)
+        
         decrypt_message = f"{user_nickname} {decrypt_message}\n"
         return decrypt_message
 
@@ -86,6 +90,7 @@ class Client:
         ## Requested nickname not found
         if (request[0] == "400"):
             self.sendTo = "Broadcast"
+            self.sdes_op = "ECB"
             self.send_to_entry.delete(0, tkinter.END)
 
         ## Requested nickname found
@@ -96,8 +101,9 @@ class Client:
         if (self.sendTo == "Broadcast"):
             self.chat_label.config(text="BROADCAST")
             self.key_label.config(text="PUBLIC")
+            self.sdes_op_label.config(text="ECB")
 
-            crypt_message = f'{self.nickname}: {cbc_cripto(message.strip(), self.public_key)}'
+            crypt_message = f'{self.nickname}: {ecb_cripto(message.strip(), self.public_key)}'
             self.sock.send(f"BROADCAST{crypt_message}".encode('utf-8'))
 
         ## DM messages handler
@@ -109,7 +115,12 @@ class Client:
                 key = self.public_key
 
                 if (self.using_algorithm == "SDES"):
-                    crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.strip(), key)}'
+                    
+                    if (self.sdes_op == "ECB"):
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {ecb_cripto(message.strip(), key)}'
+
+                    elif (self.sdes_op == "CBC"):
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.strip(), key)}'
 
                 elif (self.using_algorithm == "RC4"):
                     crypt_message = f'{self.nickname} to {self.sendTo}: {utils.RC4_crypt(message, key)}'
@@ -120,9 +131,17 @@ class Client:
             elif (self.using_key == "Secret"):
 
                 if (self.using_algorithm == "SDES"):
+
                     key = self.secret_key_SDES
-                    crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.split(), key)}'
-                    crypted_key = cbc_cripto(key, self.public_key)
+
+                    if (self.sdes_op == "ECB"):
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {ecb_cripto(message.split(), key)}'
+                        crypted_key = ecb_cripto(key, self.public_key)
+
+                    elif (self.sdes_op == "CBC"):
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.split(), key)}'
+                        crypted_key = cbc_cripto(key, self.public_key)
+                    
                     self.sock.send(f'SKEY {crypt_message} {crypted_key} SDES'.encode('utf-8'))
 
                 elif (self.using_algorithm == "RC4"):
@@ -160,7 +179,7 @@ class Client:
                 elif "DECRYPT" in message:
                     
                     ## Encrypted BROADCAST message
-                    decrypt_message = self.decrypt_message_SDES(message, self.public_key)
+                    decrypt_message = self.decrypt_message_SDES(message, self.public_key, op="ECB")
                     self.text_area.config(state='normal')
                     self.text_area.insert('end', decrypt_message)
                     self.text_area.yview('end')
@@ -171,7 +190,12 @@ class Client:
                     ## Encrypted DM message (Public Key)
                     if "SDES" in message:
                         crypted_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
-                        decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key, type="DM")
+
+                        if (self.sdes_op == "ECB"):
+                            decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key, type="DM", op="ECB")
+
+                        elif (self.sdes_op == "CBC"):
+                            decrypt_message = self.decrypt_message_SDES(crypted_message, self.public_key, type="DM", op="CBC")
 
                     elif "RC4" in message:
                         nicknames = f"{message.split()[1]} {message.split()[2]} {message.split()[3]}"
@@ -190,9 +214,15 @@ class Client:
                     ## Encrypted DM message (Secret Key)
                     if "SDES" in message:
                         crypted_key = message.split()[1]
-                        self.secret_key_SDES = cbc_descripto(crypted_key, self.public_key)
                         crypted_message = f"{message.split()[2]} {message.split()[3]} {message.split()[4]} {message.split()[5]}"
-                        decrypt_message = self.decrypt_message_SDES(crypted_message, self.secret_key_SDES, type="DM")
+
+                        if (self.sdes_op == "ECB"):            
+                            self.secret_key_SDES = ecb_descripto(crypted_key, self.public_key)
+                            decrypt_message = self.decrypt_message_SDES(crypted_message, self.secret_key_SDES, type="DM", op="ECB")
+
+                        elif (self.sdes_op == "CBC"):
+                            self.secret_key_SDES = cbc_descripto(crypted_key, self.public_key)
+                            decrypt_message = self.decrypt_message_SDES(crypted_message, self.secret_key_SDES, type="DM", op="CBC")
 
                     elif "RC4" in message:
                         self.secret_key_RC4 = message.split()[1]
@@ -317,7 +347,7 @@ class Client:
 
         self.sdes_op_label = tkinter.Label(self.window, text="ECB", bg="lightgray")
         self.sdes_op_label.config(font=("Arial", 12))
-        self.sdes_op_label.pack(padx=20, pady=5, side=tkinter)
+        self.sdes_op_label.pack(padx=20, pady=5, side=tkinter.LEFT)
 
         self.gui_done = True
         self.window.wm_protocol("WM_DELETE_WINDOW", self.stop)
