@@ -17,6 +17,10 @@ nicknames = []
 
 public_key = utils.get_Random_SDES_key(10)
 
+file = open("pkey.txt", "w")
+file.write(public_key)
+file.close()
+
 def get_client(request):
 
     i = 0
@@ -60,9 +64,41 @@ def send_req(status, user_nickname, request_nickname):
     for client in clients:
 
         if (nicknames[i] == user_nickname):
-            client.send(f"{status} {request_nickname}".encode('utf-8'))
+
+            if (status == "400"):
+                client.send(f"REQUEST {status}".encode('utf-8'))
+                return
+
+            elif (status == "200"):
+                client.send(f"REQUEST {status} {request_nickname}".encode('utf-8'))
+                return
+
+        i += 1
+
+def send_session(client_nickname, request_nickname):
+
+    i = 0
+    num_request = 0
+    for client in clients:
+
+        if (nicknames[i] == client_nickname or nicknames[i] == request_nickname):
+            client.send(f"GET SESSION {client_nickname} {request_nickname}".encode('utf-8'))
+            num_request += 1
+
+        if (num_request == 2):
             return
-        
+
+        i += 1
+
+def send_value(request_nickname, session_value):
+
+    i = 0
+    for client in clients:
+
+        if (nicknames[i] == request_nickname):
+            client.send(f"SESSION VALUE {session_value}".encode('utf-8'))
+            return
+
         i += 1
 
 def broadcast(message, decrypt = False):
@@ -118,6 +154,16 @@ def handle(client):
                     status, request_nickname = get_client(request)
                     send_req(status, user_nickname, request_nickname)
 
+                elif "USE SESSION" in message:
+                    client_nickname = message.split()[2]
+                    request_nickname = message.split()[3]
+                    send_session(client_nickname, request_nickname)
+
+                elif "SESSION VALUE" in message:
+                    request_nickname = message.split()[2]
+                    session_value = message.split()[3]
+                    send_value(request_nickname, session_value)
+
                 elif "SKEY" in message:
                     recv_message = f"{message.split()[1]} {message.split()[2]} {message.split()[3]} {message.split()[4]}"
                     key = message.split()[5]
@@ -140,9 +186,6 @@ def receive():
         try:
             client, address = server.accept()
             print(f"New client connected with IP: {str(address[0])}")
-            
-            client.send(public_key.encode('utf-8'))
-            client.recv(1024)
 
             client.send("NICKNAME".encode('utf-8'))
             nickname = client.recv(1024).decode('utf-8')

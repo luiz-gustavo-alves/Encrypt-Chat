@@ -13,6 +13,9 @@ from tkinter import simpledialog
 
 PORT = 3000
 
+prime_num = 1021
+primitive_sqrt = 751
+
 class Client:
 
     def format_nickname(self, nickname):
@@ -29,6 +32,13 @@ class Client:
         self.using_key = "Secret"
         self.key_label.config(text="SECRET")
 
+    def use_session_key(self):
+        ## User request to use session key
+        if (self.session_value == "" or self.sendTo == "Broadcast"):
+            return
+
+        self.sock.send(f"USE SESSION {self.nickname} {self.sendTo}".encode('utf-8'))
+
     def use_ecb(self):
         ## SDES ECB operation
         self.sdes_op = "ECB"
@@ -42,7 +52,9 @@ class Client:
     def get_send_to(self):
         ## User request to send Direct Messages
         self.sendTo = self.send_to_entry.get()
-        self.chat_label.config(text="DM")
+
+        ## Check if requested nickname (message via DM) exists in server
+        self.sock.send(f"GET NICKNAME {self.nickname} {self.sendTo}".encode('utf-8'))
 
     def get_secret_key_SDES(self):
         ## User request to use SDES secret key
@@ -58,6 +70,12 @@ class Client:
         self.using_algorithm = "RC4"
         self.algorithm_label.config(text="RC4")
 
+    def get_session_value(self):
+        ## User request to use public value for DH (Diffie-Hellman)
+        session_value = self.session_value_entry.get()
+        self.session_value = int(session_value)
+        self.client_mod_value = (primitive_sqrt ** self.session_value) % prime_num
+
     def decrypt_message_SDES(self, message, key, type = "Broadcast", op = "ECB"):
 
         crypt_message = message.replace("DECRYPT ", "")
@@ -71,7 +89,6 @@ class Client:
             crypt_message = crypt_message.split()[3]
 
         if (op == "ECB"):
-            print(f"{crypt_message} | {key}")
             decrypt_message = ecb_descripto(crypt_message, key)
 
         elif (op == "CBC"):
@@ -81,21 +98,9 @@ class Client:
         return decrypt_message
 
     def write(self):
+
+        ## Message input
         message = f"{self.input_area.get('1.0', 'end')}"
-
-        ## Check if requested nickname (message via DM) exists in server
-        self.sock.send(f"GET NICKNAME {self.nickname} {self.sendTo}".encode('utf-8'))
-        request = self.sock.recv(1024).decode('utf-8').split()
-
-        ## Requested nickname not found
-        if (request[0] == "400"):
-            self.sendTo = "Broadcast"
-            self.sdes_op = "ECB"
-            self.send_to_entry.delete(0, tkinter.END)
-
-        ## Requested nickname found
-        elif (request[0] == "200"):
-            self.sendTo = request[1]
 
         ## Broadcast uses public key and SDES ECB encryption as default
         if (self.sendTo == "Broadcast"):
@@ -155,8 +160,9 @@ class Client:
 
     def receive(self):
 
-        self.public_key = self.sock.recv(1024).decode('utf-8')
-        self.sock.send("KEY RECEIVED".encode('utf-8'))
+        file = open("pkey.txt", "r")
+        self.public_key = file.readline()
+        file.close()
 
         while self.running:
 
@@ -174,6 +180,45 @@ class Client:
                 ## Server request to get user nickname
                 if message == "NICKNAME":
                     self.sock.send(self.nickname.encode('utf-8'))
+
+                elif "REQUEST" in message:
+                            
+                    request = message.split()[1]
+
+                    ## Requested nickname not found
+                    if (request == "400"):
+                        self.sendTo = "Broadcast"
+                        self.sdes_op = "ECB"
+                        self.send_to_entry.delete(0, tkinter.END)
+
+                    ## Requested nickname found
+                    elif (request == "200"):
+                        request_nickname = message.split()[2]
+                        self.sendTo = request_nickname
+                        self.chat_label.config(text="DM")
+
+                elif "GET SESSION" in message:
+
+                    request_nickname1 = message.split()[2]
+                    request_nickname2 = message.split()[3]
+
+                    if (request_nickname1 == self.nickname):
+                        self.sendTo = request_nickname2
+
+                    elif (request_nickname2 == self.nickname):
+                        self.sendTo = request_nickname1
+
+                    request = self.sock.send(f"SESSION VALUE {self.sendTo} {self.client_mod_value}".encode('utf-8'))
+
+                elif "SESSION VALUE" in message:
+
+                    self.request_mod_value = int(message.split()[2])
+                    self.session_key = (self.request_mod_value ** self.session_value) % prime_num
+
+                    print(self.session_key)
+                    
+                    self.using_key = "Session"
+                    self.key_label.config(text="SESSION")
 
                 ## Decrypt messages using Public Key (Broadcast)
                 elif "DECRYPT" in message:
@@ -297,10 +342,7 @@ class Client:
         self.secret_key_label = tkinter.Label(self.window, text="Secret Key: ", bg="lightgray")
         self.secret_key_label.config(font=("Arial", 12))
         self.secret_key_label.pack(padx=10, pady=10, side=tkinter.LEFT)
-
-        self.secret_key_entry = tkinter.Entry(self.window)
-        self.secret_key_entry.pack(padx=10, pady=10, side=tkinter.LEFT)
-
+        
         self.secret_key_button_SDES = tkinter.Button(self.window, text="SDES", command=self.get_secret_key_SDES)
         self.secret_key_button_SDES.config(font=("Arial", 12))
         self.secret_key_button_SDES.pack(padx=10, pady=10, side=tkinter.LEFT)
@@ -308,6 +350,20 @@ class Client:
         self.secret_key_button_RC4 = tkinter.Button(self.window, text="RC4", command=self.get_secret_key_RC4)
         self.secret_key_button_RC4.config(font=("Arial", 12))
         self.secret_key_button_RC4.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.secret_key_entry = tkinter.Entry(self.window)
+        self.secret_key_entry.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.session_value_label = tkinter.Label(self.window, text="Session Key Value: ", bg="lightgray")
+        self.session_value_label.config(font=("Arial", 12))
+        self.session_value_label.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.session_value_entry = tkinter.Entry(self.window)
+        self.session_value_entry.pack(padx=10, pady=10, side=tkinter.LEFT)
+
+        self.session_value_button = tkinter.Button(self.window, text="Send Value", command=self.get_session_value)
+        self.session_value_button.config(font=("Arial", 12))
+        self.session_value_button.pack(padx=10, pady=10, side=tkinter.LEFT)
 
         self.sdes_op_label = tkinter.Label(self.window, text="Select SDES op: ", bg="lightgray")
         self.sdes_op_label.config(font=("Arial", 16))
@@ -332,6 +388,10 @@ class Client:
         self.use_skey_button = tkinter.Button(self.window, text="Use SECRET KEY", command=self.use_skey)
         self.use_skey_button.config(font=("Arial", 12))
         self.use_skey_button.pack(padx=20, pady=5)
+
+        self.use_session_key_button = tkinter.Button(self.window, text="Use SESSION KEY (DH)", command=self.use_session_key)
+        self.use_session_key_button.config(font=("Arial", 12))
+        self.use_session_key_button.pack(padx=20, pady=5)
 
         self.chat_label = tkinter.Label(self.window, text="BROADCAST", bg="lightgray")
         self.chat_label.config(font=("Arial", 12))
@@ -384,6 +444,10 @@ class Client:
         self.sdes_op = "ECB"
         self.secret_key_SDES = ""
         self.secret_key_RC4 = ""
+        self.session_value = ""
+        self.client_mod_value = ""
+        self.request_mod_value = ""
+        self.session_key = ""
 
         gui_thread = threading.Thread(target=self.gui_loop)
         receive_thread = threading.Thread(target=self.receive)
