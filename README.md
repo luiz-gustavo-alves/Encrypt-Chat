@@ -13,27 +13,27 @@
 - Essas configurações podem ser trocadas ao clicar nos botões (DM, SDES - RC4, ECB - CBC, PUBLIC key - SECRET key - Sesssion key).
 - Campo Message: Enviar mensagem na caixa de texto e pressione o botão SEND para enviar sua mensagem.
 
-(*) Select Algorithm: Seleciona o algoritmo de criptografia a ser utilizado na comunicação:
+- Select Algorithm: Seleciona o algoritmo de criptografia a ser utilizado na comunicação:
     - SDES: Criptografia SDES;
     - RC4: Criptografia RC4.
 
-(*) Select SDES operation: Seleciona o modo de operação da criptografia SDES:
+- Select SDES operation: Seleciona o modo de operação da criptografia SDES:
     - ECB: Modo de operação ECB;
     - CBC: Modo de operação CBC.
 
-(*) Select Key: Seleciona o tipo de chave a ser utilizado na comunicação:
+- Select Key: Seleciona o tipo de chave a ser utilizado na comunicação:
     - Public Key: Utilização da chave pública;
     - Secret Key: Utilização da chave privada (secreta);
     - Session Key: Utilização da chave de sessão (DH).
 
-(*) Send DM: Inserir nome ou IP do usuário para se comunicar no chat
-    ...Caso o nome ou IP fornecidos não exista no sistema, a forma de comunicação será padrão: BROADCAST, PUBLIC, SDES e ECB.
+- Send DM: Inserir nome ou IP do usuário para se comunicar no chat
+    - Caso o nome ou IP fornecidos não exista no sistema, a forma de comunicação será padrão: BROADCAST, PUBLIC, SDES e ECB.
 
-(*) Secret Key: Inserir chave privada para comunicação via DM - é necessário ainda escolher o tipo de criptografia SDES ou RC4.
+- Secret Key: Inserir chave privada para comunicação via DM - é necessário ainda escolher o tipo de criptografia SDES ou RC4.
     - SDES key: Fornecer chave secreta a ser utilizada na comunicação por criptografia SDES;
     - RC4 key: Fornecer chave secreta a ser utilizada na comuniação por criptografia RC4.
 
-(*) Session Key value: Inserir o valor do secredo (não compartilhado) para a chave de sessão.
+- Session Key value: Inserir o valor do secredo (não compartilhado) para a chave de sessão.
 
 ## Informações a respeito das configurações do chat:
 
