@@ -9,7 +9,6 @@ import threading
 
 import tkinter
 import tkinter.scrolledtext
-from tkinter import simpledialog
 
 PORT = 3000
 
@@ -21,6 +20,18 @@ class Client:
     def format_nickname(self, nickname):
         ## Replace whitespace for underline and remove newline
         return nickname.replace(" ", "_").strip()
+    
+    def use_default(self):
+        ## Default settings
+        self.using_key = "Public"
+        self.sendTo = "Broadcast"
+        self.using_algorithm = "SDES"
+        self.sdes_op = "ECB"
+
+        self.key_label.config(text="PUBLIC")
+        self.chat_label.config(text="BROADCAST")
+        self.algorithm_label.config(text="SDES")
+        self.sdes_op_label.config(text="ECB")
     
     def use_sdes(self):
         self.using_algorithm = "SDES"
@@ -104,17 +115,16 @@ class Client:
     def write(self):
 
         ## Message input
-        message = f"{self.input_area.get('1.0', 'end')}"
+        message = f"{self.input_area.get('1.0', 'end')}".strip()
 
         ## Broadcast uses public key and SDES ECB encryption as default
         if (self.sendTo == "Broadcast"):
 
             crypt_message = f'{self.nickname}: {ecb_cripto(message.strip(), self.public_key)}'
             self.sock.send(f"BROADCAST{crypt_message}".encode('utf-8'))
-
-            self.chat_label.config(text="BROADCAST")
-            self.key_label.config(text="PUBLIC")
-            self.sdes_op_label.config(text="ECB")
+            
+            # Reset default params
+            self.use_default()
 
         ## DM messages handler
         elif (self.sendTo != "Broadcast"):
@@ -254,8 +264,6 @@ class Client:
                     self.session_key_SDES = cbc_cripto(self.session_key, self.public_key)[:10]
                     self.session_key_RC4 = utils.RC4_crypt(self.session_key, self.public_key)
 
-                    print(self.session_key_SDES)
-                    
                     self.using_key = "Session"
                     self.key_label.config(text="SESSION")
 
@@ -319,8 +327,6 @@ class Client:
                 elif "DH" in message:
 
                     decrypt = True
-
-                    print(f"server {message}")
                     
                     nicknames = f"{message.split()[1]} {message.split()[2]} {message.split()[3]}"
                     crypted_message = message.split()[4]
@@ -375,7 +381,7 @@ class Client:
 
         ## Build GUI
         self.window = tkinter.Tk()
-        self.window.geometry("1180x780")
+        self.window.geometry("1280x600")
         self.window.title(f"NICKNAME {self.nickname}")
         self.window.configure(bg="lightgray")
 
@@ -398,42 +404,9 @@ class Client:
         self.send_button.config(font=("Arial", 12))
         self.send_button.place(x=680, y=535)
 
-        self.send_to_label = tkinter.Label(self.window, text="Send DM (name/IP): ", bg="lightgray")
-        self.send_to_label.config(font=("Arial", 12))
-        self.send_to_label.place(x=20, y=600)
-
-        self.send_to_entry = tkinter.Entry(self.window)
-        self.send_to_entry.place(x=200, y=600)
-
-        self.send_to_button = tkinter.Button(self.window, text="Send DM", command=self.get_send_to)
-        self.send_to_button.config(font=("Arial", 12))
-        self.send_to_button.place(x=400, y=595)
-
-        self.secret_key_label = tkinter.Label(self.window, text="Secret Key: ", bg="lightgray")
-        self.secret_key_label.config(font=("Arial", 12))
-        self.secret_key_label.place(x=20, y=650)
-
-        self.secret_key_entry = tkinter.Entry(self.window)
-        self.secret_key_entry.place(x=135, y=650)
-
-        self.secret_key_button_SDES = tkinter.Button(self.window, text="SDES key", command=self.get_secret_key_SDES)
-        self.secret_key_button_SDES.config(font=("Arial", 12))
-        self.secret_key_button_SDES.place(x=340, y=645)
-
-        self.secret_key_button_RC4 = tkinter.Button(self.window, text="RC4 key", command=self.get_secret_key_RC4)
-        self.secret_key_button_RC4.config(font=("Arial", 12))
-        self.secret_key_button_RC4.place(x=460, y=645)
-
-        self.session_value_label = tkinter.Label(self.window, text="Session Key Value: ", bg="lightgray")
-        self.session_value_label.config(font=("Arial", 12))
-        self.session_value_label.place(x=20, y=710)
-
-        self.session_value_entry = tkinter.Entry(self.window)
-        self.session_value_entry.place(x=200, y=710)
-
-        self.session_value_button = tkinter.Button(self.window, text="Send Value", command=self.get_session_value)
-        self.session_value_button.config(font=("Arial", 12))
-        self.session_value_button.place(x=400, y=705)
+        self.default_button = tkinter.Button(self.window, text="Reset Default Settings", command=self.use_default)
+        self.default_button.config(font=("Arial", 12))
+        self.default_button.place(x=1040, y=535)
 
         self.algorithm_label = tkinter.Label(self.window, text="Select Algorithm: ", bg="lightgray")
         self.algorithm_label.config(font=("Arial", 16))
@@ -475,21 +448,58 @@ class Client:
         self.use_session_key_button.config(font=("Arial", 12))
         self.use_session_key_button.place(x=1000, y=260)
 
-        self.chat_label = tkinter.Label(self.window, text="BROADCAST", bg="lightgray")
+        self.send_to_label = tkinter.Label(self.window, text="Send DM (name/IP): ", bg="lightgray")
+        self.send_to_label.config(font=("Arial", 12))
+        self.send_to_label.place(x=700, y=320)
+
+        self.send_to_entry = tkinter.Entry(self.window)
+        self.send_to_entry.place(x=880, y=320)
+
+        self.send_to_button = tkinter.Button(self.window, text="Send DM", command=self.get_send_to)
+        self.send_to_button.config(font=("Arial", 12))
+        self.send_to_button.place(x=1090, y=315)
+
+        self.secret_key_label = tkinter.Label(self.window, text="Secret Key: ", bg="lightgray")
+        self.secret_key_label.config(font=("Arial", 12))
+        self.secret_key_label.place(x=700, y=370)
+
+        self.secret_key_entry = tkinter.Entry(self.window)
+        self.secret_key_entry.place(x=820, y=370)
+
+        self.secret_key_button_SDES = tkinter.Button(self.window, text="SDES key", command=self.get_secret_key_SDES)
+        self.secret_key_button_SDES.config(font=("Arial", 12))
+        self.secret_key_button_SDES.place(x=1025, y=365)
+
+        self.secret_key_button_RC4 = tkinter.Button(self.window, text="RC4 key", command=self.get_secret_key_RC4)
+        self.secret_key_button_RC4.config(font=("Arial", 12))
+        self.secret_key_button_RC4.place(x=1150, y=365)
+
+        self.session_value_label = tkinter.Label(self.window, text="Session Key Value: ", bg="lightgray")
+        self.session_value_label.config(font=("Arial", 12))
+        self.session_value_label.place(x=700, y=425)
+
+        self.session_value_entry = tkinter.Entry(self.window)
+        self.session_value_entry.place(x=880, y=425)
+
+        self.session_value_button = tkinter.Button(self.window, text="Send Value", command=self.get_session_value)
+        self.session_value_button.config(font=("Arial", 12))
+        self.session_value_button.place(x=1080, y=420)
+
+        self.chat_label = tkinter.Label(self.window, text="BROADCAST", bg="#DCDC14")
         self.chat_label.config(font=("Arial", 12))
-        self.chat_label.place(x=700, y=310)
+        self.chat_label.place(x=700, y=480)
 
-        self.key_label = tkinter.Label(self.window, text="PUBLIC", bg="lightgray")
+        self.key_label = tkinter.Label(self.window, text="PUBLIC", bg="#DCDC14")
         self.key_label.config(font=("Arial", 12))
-        self.key_label.place(x=850, y=310)
+        self.key_label.place(x=850, y=480)
 
-        self.algorithm_label = tkinter.Label(self.window, text="SDES", bg="lightgray")
+        self.algorithm_label = tkinter.Label(self.window, text="SDES", bg="#DCDC14")
         self.algorithm_label.config(font=("Arial", 12))
-        self.algorithm_label.place(x=1000, y=310)
+        self.algorithm_label.place(x=1000, y=480)
 
-        self.sdes_op_label = tkinter.Label(self.window, text="ECB", bg="lightgray")
+        self.sdes_op_label = tkinter.Label(self.window, text="ECB", bg="#DCDC14")
         self.sdes_op_label.config(font=("Arial", 12))
-        self.sdes_op_label.place(x=1100, y=310)
+        self.sdes_op_label.place(x=1100, y=480)
 
         self.gui_done = True
         self.window.wm_protocol("WM_DELETE_WINDOW", self.stop)
