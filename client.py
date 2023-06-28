@@ -144,11 +144,11 @@ class Client:
                     key = self.secret_key_SDES
 
                     if (self.sdes_op == "ECB"):
-                        crypt_message = f'{self.nickname} to {self.sendTo}: {ecb_cripto(message.split(), key)}'
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {ecb_cripto(message.strip(), key)}'
                         crypted_key = ecb_cripto(key, self.public_key)
 
                     elif (self.sdes_op == "CBC"):
-                        crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.split(), key)}'
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.strip(), key)}'
                         crypted_key = cbc_cripto(key, self.public_key)
                     
                     self.sock.send(f'SKEY {crypt_message} {crypted_key} SDES'.encode('utf-8'))
@@ -168,10 +168,10 @@ class Client:
                     key = self.session_key_SDES
 
                     if (self.sdes_op == "ECB"):
-                        crypt_message = f'{self.nickname} to {self.sendTo}: {ecb_cripto(message.split(), key)}'
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {ecb_cripto(message.strip(), key)}'
 
                     elif (self.sdes_op == "CBC"):
-                        crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.split(), key)}'
+                        crypt_message = f'{self.nickname} to {self.sendTo}: {cbc_cripto(message.strip(), key)}'
                     
                     self.sock.send(f'SESSION {crypt_message} SDES'.encode('utf-8'))
 
@@ -251,8 +251,10 @@ class Client:
                     request_mod_value = int(message.split()[2])
                     self.session_key = str((request_mod_value ** self.session_value) % prime_num)
 
-                    self.session_key_SDES = cbc_cripto(self.session_key, self.public_key)
+                    self.session_key_SDES = cbc_cripto(self.session_key, self.public_key)[:10]
                     self.session_key_RC4 = utils.RC4_crypt(self.session_key, self.public_key)
+
+                    print(self.session_key_SDES)
                     
                     self.using_key = "Session"
                     self.key_label.config(text="SESSION")
@@ -317,6 +319,8 @@ class Client:
                 elif "DH" in message:
 
                     decrypt = True
+
+                    print(f"server {message}")
                     
                     nicknames = f"{message.split()[1]} {message.split()[2]} {message.split()[3]}"
                     crypted_message = message.split()[4]
@@ -327,12 +331,12 @@ class Client:
                         if (self.sdes_op == "ECB"):
 
                             decrypt_message = ecb_descripto(crypted_message, self.session_key_SDES)
-                            decrypt_message = f"{nicknames} {decrypt_message}"
+                            decrypt_message = f"{nicknames} {decrypt_message}\n"
 
                         elif (self.sdes_op == "CBC"):
 
                             decrypt_message = cbc_descripto(crypted_message, self.session_key_SDES)
-                            decrypt_message = f"{nicknames} {decrypt_message}"
+                            decrypt_message = f"{nicknames} {decrypt_message}\n"
 
                     elif (algorithm == "RC4"):
 
@@ -493,10 +497,7 @@ class Client:
 
     def __init__(self):
 
-        IP_window = tkinter.Tk()
-        IP_window.withdraw()
-
-        self.HOST_IP = simpledialog.askstring("IP", "IP:", parent=IP_window)
+        self.HOST_IP = input("Digite seu IP (EX - 127.0.0.1): ")
 
         ## Check if given IP is valid
         try:
@@ -509,11 +510,10 @@ class Client:
             print(f"Requested IP: {self.HOST_IP} | Requested PORT: {PORT}")
             exit(-1)
 
-        nickname_window = tkinter.Tk()
-        nickname_window.withdraw()
+        self.nickname = input("Digite o nome do usuário: ")
 
-        # TODO: fix bug related to user pressing enter
-        self.nickname = simpledialog.askstring("Nickname", "Please, choose a Nickname:", parent=nickname_window)
+        if self.nickname == "":
+            return
 
         self.nickname = self.format_nickname(self.nickname)
         self.gui_done = False
