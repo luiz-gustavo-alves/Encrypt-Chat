@@ -420,7 +420,7 @@ class Client:
         self.use_rc4_button.config(font=("Arial", 12))
         self.use_rc4_button.place(x=850, y=80)
 
-        self.sdes_op_label = tkinter.Label(self.window, text="Select SDES op: ", bg="lightgray")
+        self.sdes_op_label = tkinter.Label(self.window, text="Select SDES operation: ", bg="lightgray")
         self.sdes_op_label.config(font=("Arial", 16))
         self.sdes_op_label.place(x=700, y=140)
         
